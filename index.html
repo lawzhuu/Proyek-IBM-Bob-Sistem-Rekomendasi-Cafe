@@ -661,22 +661,17 @@
 </div>
 
 <script>
-// ═══════════════════════════════════════════════
-//  DATA CAFE
-// ═══════════════════════════════════════════════
-// isOpen dihitung dinamis berdasarkan jam lokal
+
 function calcIsOpen(jamBuka) {
   if (jamBuka === "Buka 24 Jam") return true;
   const now = new Date();
   const h = now.getHours() * 60 + now.getMinutes();
-  // ambil jam pertama (sebelum " / " jika ada split shift)
   const part = jamBuka.split(" / ")[0];
   const [openStr, closeStr] = part.split(" - ");
   if (!openStr || !closeStr) return true;
   const toMin = s => { const [hh,mm] = s.trim().split(":").map(Number); return hh*60+(mm||0); };
   const open = toMin(openStr);
   let close = toMin(closeStr);
-  // jam tutup lewat tengah malam
   if (close < open) close += 24*60;
   const hAdj = close < open && h < open ? h + 24*60 : h;
   return hAdj >= open && hAdj < close;
@@ -1015,13 +1010,9 @@ const cafes = [
   },
 ];
 
-// ═══════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════
 let userLat = null, userLng = null;
 let currentSearch = "", currentSort = "default", currentCategory = "all", currentStatus = "all", currentWilayah = "all";
 
-// ─── Haversine distance ─────────────────────────
 function haversine(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -1030,27 +1021,21 @@ function haversine(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ─── Stars ─────────────────────────────────────
 function stars(rating) {
   const full = Math.floor(rating);
   const half = rating % 1 >= 0.5 ? 1 : 0;
   return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(5 - full - half);
 }
 
-// ─── Distance label ────────────────────────────
 function distLabel(cafe) {
   if (userLat === null) return "—";
   const d = haversine(userLat, userLng, cafe.lat, cafe.lng);
   return d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`;
 }
 
-// ═══════════════════════════════════════════════
-//  FILTER & SORT
-// ═══════════════════════════════════════════════
 function filteredCafes() {
   let list = [...cafes];
 
-  // search
   if (currentSearch) {
     const q = currentSearch.toLowerCase();
     list = list.filter(c =>
@@ -1061,21 +1046,17 @@ function filteredCafes() {
     );
   }
 
-  // category
   if (currentCategory !== "all") {
     list = list.filter(c => c.categories.includes(currentCategory));
   }
 
-  // wilayah
   if (currentWilayah !== "all") {
     list = list.filter(c => c.wilayah === currentWilayah);
   }
 
-  // status
   if (currentStatus === "open")   list = list.filter(c => c.isOpen);
   if (currentStatus === "closed") list = list.filter(c => !c.isOpen);
 
-  // sort
   if (currentSort === "rating-desc") list.sort((a,b) => b.rating - a.rating);
   else if (currentSort === "rating-asc") list.sort((a,b) => a.rating - b.rating);
   else if (currentSort === "distance-asc" && userLat !== null)
@@ -1086,9 +1067,6 @@ function filteredCafes() {
   return list;
 }
 
-// ═══════════════════════════════════════════════
-//  RENDER CARDS
-// ═══════════════════════════════════════════════
 function renderCards() {
   const list = filteredCafes();
   const grid = document.getElementById("cafeGrid");
@@ -1135,19 +1113,15 @@ function renderCards() {
   }).join("");
 }
 
-// ═══════════════════════════════════════════════
-//  RENDER RECOMMENDATIONS
-// ═══════════════════════════════════════════════
 function renderRecommendations() {
   if (userLat === null) return;
   const recSection = document.getElementById("recSection");
   const recGrid = document.getElementById("recGrid");
   recSection.style.display = "block";
 
-  // top 5 by composite score: high rating + low distance
   const scored = cafes.map(c => {
     const d = haversine(userLat, userLng, c.lat, c.lng);
-    const score = c.rating * 20 - d; // weight rating more
+    const score = c.rating * 20 - d; 
     return { ...c, dist: d, score };
   });
   scored.sort((a,b) => b.score - a.score);
@@ -1163,9 +1137,6 @@ function renderRecommendations() {
   `).join("");
 }
 
-// ═══════════════════════════════════════════════
-//  MODAL
-// ═══════════════════════════════════════════════
 function openModal(id) {
   const c = cafes.find(x => x.id === id);
   if (!c) return;
@@ -1190,9 +1161,6 @@ document.getElementById("modalOverlay").addEventListener("click", e => {
   if (e.target === e.currentTarget) document.getElementById("modalOverlay").classList.remove("active");
 });
 
-// ═══════════════════════════════════════════════
-//  EVENTS
-// ═══════════════════════════════════════════════
 document.getElementById("searchInput").addEventListener("input", e => {
   currentSearch = e.target.value.trim();
   renderCards();
@@ -1228,7 +1196,6 @@ document.getElementById("btnReset").addEventListener("click", () => {
   renderCards();
 });
 
-// ─── Geolocation ────────────────────────────────
 document.getElementById("btnLocation").addEventListener("click", () => {
   if (!navigator.geolocation) {
     alert("Browser kamu tidak mendukung geolocation.");
@@ -1242,7 +1209,6 @@ document.getElementById("btnLocation").addEventListener("click", () => {
     userLat = pos.coords.latitude;
     userLng = pos.coords.longitude;
 
-    // show banner
     const banner = document.getElementById("location-banner");
     banner.style.display = "block";
     document.getElementById("locationText").textContent =
@@ -1253,7 +1219,6 @@ document.getElementById("btnLocation").addEventListener("click", () => {
     btn.style.borderColor = "#2d7a50";
     btn.disabled = false;
 
-    // auto-sort by distance
     currentSort = "distance-asc";
     document.getElementById("sortSelect").value = "distance-asc";
 
@@ -1266,14 +1231,8 @@ document.getElementById("btnLocation").addEventListener("click", () => {
   });
 });
 
-// ─── Initial render ─────────────────────────────
 renderCards();
 
-// ═══════════════════════════════════════════════
-//  AI CHAT ENGINE — Jogja Cafe Recommender AI
-// ═══════════════════════════════════════════════
-
-// ─── Knowledge base (mirrors cafes array, structured for AI matching) ────
 const KB = cafes.map(c => ({
   id: c.id,
   name: c.name,
@@ -1288,7 +1247,6 @@ const KB = cafes.map(c => ({
   emoji: c.emoji,
 }));
 
-// ─── Intent / keyword maps ────────────────────
 const INTENT = {
   nugas:    ["nugas", "kerja", "ngerjain", "tugas", "skripsi", "deadline", "coworking", "co-working", "work", "belajar", "wifi", "internet", "laptop"],
   latenight:["malam", "malem", "larut", "dini hari", "subuh", "24 jam", "24jam", "open late", "tengah malam"],
@@ -1308,7 +1266,6 @@ const AREA = {
   "Kota Yogyakarta": ["kota jogja","kota yogya","kota yogyakarta","jogja kota","pusat kota","kota"],
   "Sleman":          ["sleman","seturan","gejayan","jakal","kaliurang","palagan","condongcatur","mlati","ngaglik","depok"],
   "Bantul":          ["bantul","kasihan","tirtonirmolo"],
-  // sub-areas
   "Seturan":         ["seturan"],
   "Gejayan":         ["gejayan","affandi"],
   "Kaliurang":       ["kaliurang","jakal"],
@@ -1320,7 +1277,6 @@ const AREA = {
   "Mantrijeron":     ["mantrijeron"],
 };
 
-// ─── Category label → categories array matching ────────────────────────
 const CAT_MAP = {
   nugas:    ["Work-Friendly","Co-working Space","Coworking Space","Nugas Friendly","Fast Internet","High Speed WiFi","Coffee & Work Space","Spacious Coworking","Student Space","Student Hub","Book Cafe","Quiet Vibes"],
   latenight:["Open Late","Open 24 Hours"],
@@ -1336,7 +1292,6 @@ const CAT_MAP = {
   family:   ["Family Friendly"],
 };
 
-// ─── Detect intents from user message ──────────
 function detectIntents(msg) {
   const m = msg.toLowerCase();
   const found = [];
@@ -1346,7 +1301,6 @@ function detectIntents(msg) {
   return found;
 }
 
-// ─── Detect area from user message ──────────────
 function detectArea(msg) {
   const m = msg.toLowerCase();
   for (const [area, words] of Object.entries(AREA)) {
@@ -1355,38 +1309,33 @@ function detectArea(msg) {
   return null;
 }
 
-// ─── Score a cafe against intents ───────────────
 function scoreCafe(cafe, intents, area) {
-  let score = cafe.rating * 10; // base
+  let score = cafe.rating * 10;
 
-  // area match
   if (area) {
     const areaLower = area.toLowerCase();
     const inWilayah = cafe.wilayah.toLowerCase().includes(areaLower);
     const inDistrict = cafe.district.toLowerCase().includes(areaLower);
     const inLocation = cafe.location.toLowerCase().includes(areaLower);
-    // check sub-area keywords directly
+    
     const subWords = AREA[area] || [];
     const inSub = subWords.some(w => cafe.location.toLowerCase().includes(w) || cafe.district.toLowerCase().includes(w));
 
     if (inWilayah || inDistrict || inLocation || inSub) score += 50;
-    else return -1; // disqualify if area filter active but no match
+    else return -1; 
   }
 
-  // intent match
   for (const intent of intents) {
     const cats = CAT_MAP[intent] || [];
     const matches = cats.filter(cat => cafe.categories.includes(cat)).length;
     score += matches * 15;
   }
 
-  // bonus for open now
   if (cafe.isOpen) score += 5;
 
   return score;
 }
 
-// ─── Build recommendation card HTML ─────────────
 function buildRecoCard(cafe, rank) {
   return `<strong>${rank}. ${cafe.emoji} ${cafe.name}</strong> (⭐ ${cafe.rating.toFixed(1)}/5.0)\n` +
     `📍 <strong>Wilayah:</strong> ${cafe.wilayah} (${cafe.district})\n` +
@@ -1395,14 +1344,12 @@ function buildRecoCard(cafe, rank) {
     `💡 ${cafe.desc}`;
 }
 
-// ─── Main AI response logic ──────────────────────
 function aiRespond(userMsg) {
   const msg = userMsg.trim();
   if (!msg) return null;
 
   const lower = msg.toLowerCase();
 
-  // Out-of-domain check
   const jogjaKeywords = ["kafe","cafe","kopi","coffee","nugas","makan","nongkrong","rekomendasi","tempat","jogja","yogya","sleman","bantul","minum","ngopi","coworking","buka","tutup","murah","mahal","wifi","rating","outdoor","aesthetic","cozy","enak","beli","dekat","area","lokasi"];
   const isOnDomain = jogjaKeywords.some(k => lower.includes(k));
   if (!isOnDomain) {
@@ -1412,21 +1359,17 @@ function aiRespond(userMsg) {
   const intents = detectIntents(msg);
   const area = detectArea(msg);
 
-  // Score all cafes
   let candidates = KB
     .map(c => ({ ...c, score: scoreCafe(c, intents, area) }))
     .filter(c => c.score > 0)
     .sort((a, b) => b.score - a.score);
 
-  // If no good match, fallback to top-rated
   if (candidates.length === 0) {
     candidates = [...KB].sort((a,b) => b.rating - a.rating);
   }
 
-  // Pick top 2-3
   const top = candidates.slice(0, 3);
 
-  // Compose intro
   let intro = "Halo! Ini beberapa rekomendasi kafe di Jogja yang paling cocok buat kebutuhanmu:\n\n";
 
   if (area && intents.length) {
@@ -1454,19 +1397,16 @@ function aiRespond(userMsg) {
   return intro + cards + closing;
 }
 
-// ─── Chat UI helpers ──────────────────────────────
 const chatMessages = document.getElementById("chatMessages");
 
 function appendMsg(text, type) {
   const div = document.createElement("div");
   div.className = `msg ${type}`;
-  // allow minimal bold formatting for bot messages
   if (type === "bot") {
     div.innerHTML = text
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
       .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
       .replace(/<strong>/g,"<strong>").replace(/<\/strong>/g,"</strong>")
-      // restore HTML strong we built ourselves
       .replace(/&lt;strong&gt;/g,"<strong>").replace(/&lt;\/strong&gt;/g,"</strong>")
       .replace(/\n/g,"<br>");
   } else {
@@ -1481,13 +1421,11 @@ function sendMessage(text) {
   const trimmed = text.trim();
   if (!trimmed) return;
 
-  // hide chips after first message
   document.getElementById("chatChips").style.display = "none";
 
   appendMsg(trimmed, "user");
   document.getElementById("chatInput").value = "";
 
-  // typing indicator
   const typing = appendMsg("Lagi mikir… ✍️", "typing");
 
   setTimeout(() => {
@@ -1497,7 +1435,6 @@ function sendMessage(text) {
   }, 600 + Math.random() * 400);
 }
 
-// ─── Chat UI events ──────────────────────────────
 const chatFab   = document.getElementById("chatFab");
 const chatPanel = document.getElementById("chatPanel");
 const chatClose = document.getElementById("chatClose");
@@ -1507,7 +1444,6 @@ const chatSend  = document.getElementById("chatSend");
 chatFab.addEventListener("click", () => {
   chatPanel.classList.add("open");
   chatFab.style.display = "none";
-  // greet on first open
   if (chatMessages.children.length === 0) {
     setTimeout(() => {
       appendMsg("Halo! 👋 Aku <strong>Jogja Cafe Recommender AI</strong>.\n\nMau cari kafe buat nugas, nongkrong, atau ngopi di Jogja? Tinggal tanya aja, aku siap bantu! ☕\n\nContoh: <em>\"Kafe nugas 24 jam di Seturan\"</em> atau <em>\"Cafe outdoor aesthetic di Sleman\"</em>", "bot");
@@ -1523,7 +1459,6 @@ chatClose.addEventListener("click", () => {
 chatSend.addEventListener("click", () => sendMessage(chatInput.value));
 chatInput.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(chatInput.value); });
 
-// quick chips
 document.querySelectorAll(".chip").forEach(chip => {
   chip.addEventListener("click", () => sendMessage(chip.textContent.replace(/^[^\w]+/,"").trim()));
 });
