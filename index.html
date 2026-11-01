@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CaféFind – Sistem Rekomendasi Cafe</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #fdf8f3;
+      --card: #ffffff;
+      --border: #e8ddd0;
+      --text: #2c1a0e;
+      --muted: #7a6552;
+      --accent: #c47c3e;
+      --accent2: #6b4226;
+      --green: #2d7a50;
+      --red: #c0392b;
+      --yellow: #e6a817;
+      --tag-bg: #f5ede3;
+      --shadow: 0 2px 12px rgba(44,26,14,0.08);
+      --radius: 14px;
+    }
+
+    body {
+      font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+      color: #fff;
+      padding: 28px 24px 24px;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; letter-spacing: -0.5px; }
+    header p  { opacity: .85; margin-top: 4px; font-size: .95rem; }
+
+    /* ── CONTROLS ── */
+    .controls {
+      max-width: 960px;
+      margin: 24px auto 0;
+      padding: 0 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .search-wrap {
+      flex: 1 1 260px;
+      position: relative;
+    }
+    .search-wrap input {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      font-size: .95rem;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-wrap input:focus { border-color: var(--accent); }
+    .search-wrap svg {
+      position: absolute;
+      left: 14px; top: 50%;
+      transform: translateY(-50%);
+      opacity: .5;
+    }
+
+    select, button {
+      padding: 11px 18px;
+      border-radius: 50px;
+      border: 1.5px solid var(--border);
+      background: #fff;
+      color: var(--text);
+      font-size: .9rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    select:focus, button:focus { border-color: var(--accent); }
+
+    .btn-location {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+    }
+    .btn-location:hover { background: var(--accent2); border-color: var(--accent2); }
+
+    .btn-reset {
+      background: transparent;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+    .btn-reset:hover { color: var(--red); border-color: var(--red); }
+
+    /* ── LOCATION BANNER ── */
+    #location-banner {
+      max-width: 960px;
+      margin: 14px auto 0;
+      padding: 0 16px;
+      display: none;
+    }
+    #location-banner .banner-inner {
+      background: #e8f5ee;
+      border: 1.5px solid #a8d5b5;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: .88rem;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      max-width: 960px;
+      margin: 28px auto 0;
+      padding: 0 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .section-title h2 { font-size: 1.1rem; color: var(--text); }
+    .count-badge {
+      background: var(--tag-bg);
+      color: var(--accent2);
+      font-size: .8rem;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 50px;
+    }
+
+    /* ── GRID ── */
+    .grid {
+      max-width: 960px;
+      margin: 16px auto 40px;
+      padding: 0 16px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: transform .18s, box-shadow .18s;
+      cursor: pointer;
+    }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(44,26,14,0.13); }
+
+    .card-img {
+      width: 100%; height: 160px;
+      object-fit: cover;
+      display: block;
+      background: #e8ddd0;
+      position: relative;
+    }
+    .card-img-placeholder {
+      width: 100%; height: 160px;
+      background: linear-gradient(135deg, #e8ddd0, #f5ede3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 3rem;
+    }
+
+    .badge-distance {
+      position: absolute;
+      top: 10px; right: 10px;
+      background: rgba(0,0,0,.55);
+      color: #fff;
+      font-size: .75rem;
+      padding: 3px 9px;
+      border-radius: 50px;
+      backdrop-filter: blur(4px);
+    }
+
+    .card-body { padding: 14px 16px 16px; }
+
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .card-name { font-size: 1rem; font-weight: 700; color: var(--text); line-height: 1.3; }
+
+    .rating {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--yellow);
+      white-space: nowrap;
+    }
+    .rating span { color: var(--muted); font-weight: 400; font-size: .78rem; }
+
+    .card-location {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 5px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 10px;
+    }
+    .tag {
+      background: var(--tag-bg);
+      color: var(--accent2);
+      font-size: .75rem;
+      padding: 3px 9px;
+      border-radius: 50px;
+      font-weight: 500;
+    }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      font-size: .8rem;
+      color: var(--muted);
+    }
+    .open-status { font-weight: 600; }
+    .open-status.open { color: var(--green); }
+    .open-status.closed { color: var(--red); }
+
+    .price-range { font-size: .82rem; }
+
+    /* ── RECOMMENDED SECTION ── */
+    .rec-section {
+      max-width: 960px;
+      margin: 0 auto 8px;
+      padding: 0 16px;
+    }
+    .rec-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .rec-header h2 { font-size: 1.1rem; }
+    .rec-badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 3px 9px;
+      border-radius: 50px;
+      letter-spacing: .5px;
+    }
+
+    .rec-grid {
+      display: flex;
+      gap: 14px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      scrollbar-width: thin;
+    }
+    .rec-card {
+      min-width: 200px;
+      background: #fff;
+      border-radius: 12px;
+      border: 1.5px solid var(--border);
+      padding: 14px;
+      flex-shrink: 0;
+      box-shadow: var(--shadow);
+    }
+    .rec-card .cafe-emoji { font-size: 2rem; margin-bottom: 6px; }
+    .rec-card .rec-name { font-weight: 700; font-size: .92rem; margin-bottom: 4px; }
+    .rec-card .rec-dist { font-size: .78rem; color: var(--muted); }
+    .rec-card .rec-rating { font-size: .82rem; color: var(--yellow); font-weight: 700; margin-top: 6px; }
+
+    /* ── EMPTY STATE ── */
+    .empty {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .empty .empty-icon { font-size: 3rem; margin-bottom: 12px; }
+    .empty p { font-size: 1rem; }
+
+    /* ── MODAL ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: #fff;
+      border-radius: 18px;
+      max-width: 480px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+      animation: slideUp .25s ease;
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } }
+    .modal-img-area {
+      height: 180px;
+      background: linear-gradient(135deg, #e8ddd0, #f5ede3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 5rem;
+    }
+    .modal-body { padding: 22px 24px 26px; }
+    .modal-name { font-size: 1.4rem; font-weight: 700; }
+    .modal-sub { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+    .modal-rating { margin-top: 10px; font-size: 1rem; color: var(--yellow); font-weight: 700; }
+    .modal-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+    .modal-row { display: flex; gap: 8px; margin-bottom: 8px; font-size: .9rem; }
+    .modal-row .label { color: var(--muted); min-width: 110px; }
+    .modal-row .value { font-weight: 500; }
+    .modal-desc { font-size: .88rem; color: var(--muted); line-height: 1.6; margin-top: 10px; }
+    .modal-close {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 50px;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .modal-close:hover { background: var(--accent2); }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: .8rem;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── AI CHAT ── */
+    .chat-fab {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      width: 58px; height: 58px;
+      border-radius: 50%;
+      background: var(--accent2);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(107,66,38,.45);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+      z-index: 200;
+      transition: transform .18s, background .18s;
+    }
+    .chat-fab:hover { background: var(--accent); transform: scale(1.08); }
+
+    .chat-panel {
+      position: fixed;
+      bottom: 98px; right: 28px;
+      width: 360px; max-width: calc(100vw - 40px);
+      height: 520px; max-height: calc(100vh - 130px);
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 12px 48px rgba(44,26,14,.2);
+      display: flex; flex-direction: column;
+      z-index: 199;
+      overflow: hidden;
+      border: 1.5px solid var(--border);
+      transform: translateY(20px) scale(.97);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .22s, opacity .22s;
+    }
+    .chat-panel.open {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      color: #fff;
+      padding: 14px 18px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .chat-header .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: rgba(255,255,255,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+    }
+    .chat-header-info .title { font-weight: 700; font-size: .95rem; }
+    .chat-header-info .sub { font-size: .75rem; opacity: .85; }
+    .chat-close-btn {
+      margin-left: auto;
+      background: none; border: none; color: #fff;
+      cursor: pointer; font-size: 1.2rem; line-height: 1;
+      padding: 0 2px;
+    }
+
+    .chat-messages {
+      flex: 1; overflow-y: auto;
+      padding: 14px 14px 8px;
+      display: flex; flex-direction: column; gap: 10px;
+      scrollbar-width: thin;
+    }
+
+    .msg {
+      max-width: 88%;
+      padding: 10px 13px;
+      border-radius: 14px;
+      font-size: .86rem;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+    .msg.bot {
+      background: #f5ede3;
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+      align-self: flex-start;
+    }
+    .msg.user {
+      background: var(--accent2);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+      align-self: flex-end;
+    }
+    .msg.typing {
+      background: #f5ede3;
+      align-self: flex-start;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .chat-suggestions {
+      padding: 6px 14px 0;
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .chip {
+      background: var(--tag-bg);
+      color: var(--accent2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 5px 12px;
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      white-space: nowrap;
+    }
+    .chip:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .chat-input-row {
+      padding: 10px 14px 14px;
+      display: flex; gap: 8px;
+    }
+    .chat-input-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 50px;
+      font-size: .88rem;
+      outline: none;
+      color: var(--text);
+    }
+    .chat-input-row input:focus { border-color: var(--accent); }
+    .chat-send-btn {
+      width: 40px; height: 40px;
+      background: var(--accent2);
+      color: #fff;
+      border: none; border-radius: 50%;
+      cursor: pointer; font-size: 1.1rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s;
+      flex-shrink: 0;
+    }
+    .chat-send-btn:hover { background: var(--accent); }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.5rem; }
+      .controls { gap: 8px; }
+      .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 88px; }
+      .chat-fab { bottom: 18px; right: 18px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <h1>☕ CaféFind</h1>
+  <p>Temukan cafe terbaik di sekitar kamu</p>
+</header>
+
+<!-- ══ CONTROLS ══ -->
+<div class="controls">
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" id="searchInput" placeholder="Cari nama cafe, lokasi, atau kategori…" />
+  </div>
+
+  <!-- Sort -->
+  <select id="sortSelect">
+    <option value="default">Urutkan: Default</option>
+    <option value="rating-desc">⭐ Rating Tertinggi</option>
+    <option value="rating-asc">Rating Terendah</option>
+    <option value="distance-asc">📍 Jarak Terdekat</option>
+    <option value="name-asc">A → Z</option>
+    <option value="name-desc">Z → A</option>
+  </select>
+
+  <!-- Category filter -->
+  <select id="categorySelect">
+    <option value="all">Semua Kategori</option>
+    <option value="Open 24 Hours">🕛 Buka 24 Jam</option>
+    <option value="Open Late">🌙 Open Late</option>
+    <option value="Work-Friendly">💻 Work-Friendly</option>
+    <option value="Specialty Coffee">☕ Specialty Coffee</option>
+    <option value="Outdoor">🌿 Outdoor / Garden</option>
+    <option value="Eatery">🍽️ Eatery</option>
+    <option value="Hangout Spot">🎉 Hangout Spot</option>
+    <option value="Aesthetic">✨ Aesthetic</option>
+    <option value="Cozy">🛋️ Cozy</option>
+    <option value="Live Music">🎵 Live Music</option>
+  </select>
+
+  <!-- Status filter -->
+  <select id="statusSelect">
+    <option value="all">Semua Status</option>
+    <option value="open">🟢 Buka Sekarang</option>
+    <option value="closed">🔴 Tutup</option>
+  </select>
+
+  <!-- Wilayah filter -->
+  <select id="wilayahSelect">
+    <option value="all">Semua Wilayah</option>
+    <option value="Kota Yogyakarta">🏙️ Kota Yogyakarta</option>
+    <option value="Sleman">🌄 Sleman</option>
+    <option value="Bantul">🌾 Bantul</option>
+  </select>
+
+  <!-- Detect location -->
+  <button class="btn-location" id="btnLocation">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+    Lokasi Saya
+  </button>
+
+  <button class="btn-reset" id="btnReset">✕ Reset</button>
+</div>
+
+<!-- ══ LOCATION BANNER ══ -->
+<div id="location-banner">
+  <div class="banner-inner">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+    <span id="locationText">Lokasi terdeteksi</span>
+  </div>
+</div>
+
+<!-- ══ RECOMMENDED (muncul saat lokasi aktif) ══ -->
+<div class="rec-section" id="recSection" style="display:none; margin-top:28px;">
+  <div class="rec-header">
+    <h2>🎯 Rekomendasi Terdekat</h2>
+    <span class="rec-badge">NEARBY TOP PICKS</span>
+  </div>
+  <div class="rec-grid" id="recGrid"></div>
+</div>
+
+<!-- ══ SECTION TITLE ══ -->
+<div class="section-title">
+  <h2 id="gridTitle">Semua Cafe</h2>
+  <span class="count-badge" id="countBadge">0 cafe</span>
+</div>
+
+<!-- ══ GRID ══ -->
+<div class="grid" id="cafeGrid"></div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-img-area" id="modalEmoji">☕</div>
+    <div class="modal-body">
+      <div class="modal-name" id="modalName"></div>
+      <div class="modal-sub" id="modalSub"></div>
+      <div class="modal-rating" id="modalRating"></div>
+      <hr class="modal-divider"/>
+      <div class="modal-row"><span class="label">📍 Lokasi</span><span class="value" id="modalLocation"></span></div>
+      <div class="modal-row"><span class="label">🕐 Jam Buka</span><span class="value" id="modalHours"></span></div>
+      <div class="modal-row"><span class="label">💰 Harga Rata-rata</span><span class="value" id="modalPrice"></span></div>
+      <div class="modal-row"><span class="label">📞 Kontak</span><span class="value" id="modalContact"></span></div>
+      <div class="modal-row"><span class="label">🚗 Jarak</span><span class="value" id="modalDistance"></span></div>
+      <p class="modal-desc" id="modalDesc"></p>
+      <button class="modal-close" id="modalClose">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ FOOTER ══ -->
+<footer>© 2025 CaféFind &nbsp;·&nbsp; Sistem Rekomendasi Cafe</footer>
+
+<!-- ══ AI CHAT FAB ══ -->
+<button class="chat-fab" id="chatFab" title="Tanya AI Recommender">🤖</button>
+
+<!-- ══ AI CHAT PANEL ══ -->
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="avatar">☕</div>
+    <div class="chat-header-info">
+      <div class="title">Jogja Cafe Recommender AI</div>
+      <div class="sub">Panduan ngopi & nugas di Jogja</div>
+    </div>
+    <button class="chat-close-btn" id="chatClose">✕</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-suggestions" id="chatChips">
+    <button class="chip">☕ Nugas 24 jam</button>
+    <button class="chip">🌙 Buka malam ini</button>
+    <button class="chip">🌿 Outdoor Sleman</button>
+    <button class="chip">⭐ Rating tertinggi</button>
+    <button class="chip">📍 Di Gejayan</button>
+    <button class="chip">🎵 Live music</button>
+  </div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Tanya sesuatu… cth: mau nugas di Seturan" maxlength="200"/>
+    <button class="chat-send-btn" id="chatSend">➤</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  DATA CAFE
+// ═══════════════════════════════════════════════
+// isOpen dihitung dinamis berdasarkan jam lokal
+function calcIsOpen(jamBuka) {
+  if (jamBuka === "Buka 24 Jam") return true;
+  const now = new Date();
+  const h = now.getHours() * 60 + now.getMinutes();
+  // ambil jam pertama (sebelum " / " jika ada split shift)
+  const part = jamBuka.split(" / ")[0];
+  const [openStr, closeStr] = part.split(" - ");
+  if (!openStr || !closeStr) return true;
+  const toMin = s => { const [hh,mm] = s.trim().split(":").map(Number); return hh*60+(mm||0); };
+  const open = toMin(openStr);
+  let close = toMin(closeStr);
+  // jam tutup lewat tengah malam
+  if (close < open) close += 24*60;
+  const hAdj = close < open && h < open ? h + 24*60 : h;
+  return hAdj >= open && hAdj < close;
+}
+
+const cafes = [
+  {
+    id: 1, name: "Nyore Coffee & Space", emoji: "☕",
+    location: "Jl. Margo Utomo No.79, Gowongan, Kec. Jetis, Kota Yogyakarta",
+    district: "Jetis", wilayah: "Kota Yogyakarta",
+    lat: -7.7899, lng: 110.3680,
+    rating: 4.7, reviews: 2100,
+    categories: ["Coffee & Work Space", "Open Late", "Modern Minimalist", "Work-Friendly"],
+    hours: "08:00 - 00:00 / 02:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Work space kafe modern minimalis yang buka hingga larut malam. Cocok untuk kerja, nongkrong, atau meeting santai.",
+  },
+  {
+    id: 2, name: "Temu Kamu Coffee & Eatery Yogyakarta", emoji: "🍽️",
+    location: "Jl. Laksda Adisucipto No.53, Demangan, Kec. Gondokusuman, Kota Yogyakarta",
+    district: "Gondokusuman", wilayah: "Kota Yogyakarta",
+    lat: -7.7836, lng: 110.3930,
+    rating: 4.6, reviews: 667,
+    categories: ["Eatery", "Hangout Spot", "Casual Dining", "Open Late"],
+    hours: "11:00 - 22:00 / 00:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Tempat hangout favorit dengan menu eatery lengkap. Suasana casual dan ramah untuk berbagai kalangan.",
+  },
+  {
+    id: 3, name: "TETRA Coffee & Eatery", emoji: "✨",
+    location: "Jl. Sagan I No.5, Terban, Kec. Gondokusuman, Kota Yogyakarta",
+    district: "Gondokusuman", wilayah: "Kota Yogyakarta",
+    lat: -7.7806, lng: 110.3789,
+    rating: 4.6, reviews: 1200,
+    categories: ["Specialty Coffee", "Aesthetic Architecture", "Work-Friendly"],
+    hours: "07:00 - 23:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe dengan arsitektur estetik dan kopi specialty. Sangat work-friendly dengan suasana yang instagrammable.",
+  },
+  {
+    id: 4, name: "Kopi Nako Rumah Sangrai - Jogja", emoji: "🫘",
+    location: "Jl. Jend. Sudirman No.52, Kotabaru, Kec. Gondokusuman, Kota Yogyakarta",
+    district: "Kotabaru", wilayah: "Kota Yogyakarta",
+    lat: -7.7843, lng: 110.3752,
+    rating: 4.8, reviews: 1900,
+    categories: ["Open 24 Hours", "Outdoor", "Coffee Roastery", "Specialty Coffee"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Rumah sangrai kopi buka 24 jam. Nikmati kopi single origin langsung dari roastery dengan suasana outdoor yang nyaman.",
+  },
+  {
+    id: 5, name: "Sunset Coffee & Eatery", emoji: "🌇",
+    location: "Jl. Wahid Hasyim, Nologaten, Condongcatur, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7636, lng: 110.4027,
+    rating: 4.6, reviews: 4400,
+    categories: ["Eatery", "Hangout Spot", "Large Capacity", "Open Late"],
+    hours: "09:00 - 00:30",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe dengan kapasitas besar, cocok untuk gathering dan acara. Salah satu kafe paling ramai di Sleman.",
+  },
+  {
+    id: 6, name: "Nest Coffee & Donuts Uma Tilu", emoji: "🍩",
+    location: "Jl. Prawirotaman, Brontokusuman, Kec. Mergangsan, Kota Yogyakarta",
+    district: "Mergangsan", wilayah: "Kota Yogyakarta",
+    lat: -7.8125, lng: 110.3636,
+    rating: 4.3, reviews: 170,
+    categories: ["Artisan Donuts", "Cozy Coffee", "Tourist Area", "Cozy"],
+    hours: "07:00 - 22:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe cozy di kawasan wisata Prawirotaman. Spesialis donut artisan dengan berbagai pilihan kopi nikmat.",
+  },
+  {
+    id: 7, name: "Sonderbrew - Tirtodipuran", emoji: "☕",
+    location: "Jl. Tirtodipuran No.46, Mantrijeron, Kec. Mantrijeron, Kota Yogyakarta",
+    district: "Mantrijeron", wilayah: "Kota Yogyakarta",
+    lat: -7.8143, lng: 110.3618,
+    rating: 4.9, reviews: 304,
+    categories: ["Specialty Coffee", "Open Late", "Cozy Space", "Cozy"],
+    hours: "07:00 - 01:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Specialty coffee bar dengan rating tertinggi di kawasan Tirtodipuran. Buka hingga dini hari dengan suasana cozy.",
+  },
+  {
+    id: 8, name: "Literica Resto & Cafe", emoji: "📚",
+    location: "Jl. Tirtodipuran No.65, Mantrijeron, Kec. Mantrijeron, Kota Yogyakarta",
+    district: "Mantrijeron", wilayah: "Kota Yogyakarta",
+    lat: -7.8155, lng: 110.3610,
+    rating: 4.8, reviews: 586,
+    categories: ["Book Cafe", "Work-Friendly", "Quiet Vibes", "Cozy"],
+    hours: "08:00 - 21:00 / 22:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Resto dan kafe bertema buku. Koleksi buku lengkap, cocok untuk kerja atau baca buku sambil menikmati kopi.",
+  },
+  {
+    id: 9, name: "Suasiko Coffee & Garden", emoji: "🌿",
+    location: "Jl. Tirtodipuran No.3 2nd Floor, Mantrijeron, Kota Yogyakarta",
+    district: "Mantrijeron", wilayah: "Kota Yogyakarta",
+    lat: -7.8120, lng: 110.3624,
+    rating: 4.8, reviews: 72,
+    categories: ["Outdoor Garden", "Calm Vibe", "Specialty Coffee", "Outdoor"],
+    hours: "07:00 - 21:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Coffee and garden di lantai 2 dengan suasana tenang. Specialty coffee berkualitas dikelilingi taman hijau.",
+  },
+  {
+    id: 10, name: "No/8 Social", emoji: "🍸",
+    location: "Jl. Prawirotaman No.15, Brontokusuman, Kec. Mergangsan, Kota Yogyakarta",
+    district: "Mergangsan", wilayah: "Kota Yogyakarta",
+    lat: -7.8130, lng: 110.3640,
+    rating: 4.9, reviews: 95,
+    categories: ["Social Space", "Cocktails & Coffee", "Modern Ambience", "Aesthetic"],
+    hours: "10:00 - 23:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Social space modern dengan menu cocktail dan specialty coffee. Tempat hangout premium di kawasan Prawirotaman.",
+  },
+  {
+    id: 11, name: "JOKOPI - Jogja", emoji: "☕",
+    location: "Jl. Seturan I No.221, Kledokan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7712, lng: 110.4108,
+    rating: 4.8, reviews: 1300,
+    categories: ["Open 24 Hours", "Nugas Friendly", "Takeaway & Dine In", "Work-Friendly"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe 24 jam favorit mahasiswa kawasan Seturan. Cocok untuk ngerjain tugas (nugas), takeaway, dan dine in.",
+  },
+  {
+    id: 12, name: "Nuju Coffee Seturan", emoji: "☕",
+    location: "Jl. Seturan Raya, Kledokan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7720, lng: 110.4115,
+    rating: 4.9, reviews: 1400,
+    categories: ["Open 24 Hours", "Student Hub", "Affordable Coffee", "Work-Friendly"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Student hub kopi terjangkau buka 24 jam. Sangat populer di kalangan mahasiswa Seturan karena harga bersahabat.",
+  },
+  {
+    id: 13, name: "HiPo Coffee & Eatery", emoji: "🦛",
+    location: "Jl. Seturan Raya No.168, Kledokan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7730, lng: 110.4120,
+    rating: 4.6, reviews: 102,
+    categories: ["Eatery", "Open Late", "Hangout Space", "Hangout Spot"],
+    hours: "10:00 - 01:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Coffee dan eatery dengan suasana hangout yang asyik. Buka hingga dini hari, cocok untuk nongkrong malam.",
+  },
+  {
+    id: 14, name: "CW Coffee & Eatery Seturan", emoji: "💻",
+    location: "Jl. Seturan Raya, Kledokan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7725, lng: 110.4118,
+    rating: 4.0, reviews: 469,
+    categories: ["Open 24 Hours", "Co-working Space", "High Speed WiFi", "Work-Friendly"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Co-working space 24 jam dengan WiFi kencang. Solusi terbaik untuk pekerja remote dan mahasiswa yang butuh koneksi cepat.",
+  },
+  {
+    id: 15, name: "The Gardens", emoji: "🎸",
+    location: "Jl. Seturan Raya, Kledokan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7735, lng: 110.4122,
+    rating: 4.4, reviews: 2000,
+    categories: ["Open Late", "Live Music", "Lounge & Eatery", "Hangout Spot"],
+    hours: "16:00 - 03:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Lounge dan eatery dengan live music reguler. Buka sore hingga dini hari, tempat favorit untuk bersantai malam hari.",
+  },
+  {
+    id: 16, name: "Coconut Coffee & Eatery Palagan", emoji: "🥥",
+    location: "Jl. Pandhawa, Tegal Rejo, Sariharjo, Kec. Ngaglik, Sleman",
+    district: "Ngaglik", wilayah: "Sleman",
+    lat: -7.7310, lng: 110.3740,
+    rating: 4.8, reviews: 1300,
+    categories: ["Garden Cafe", "Family Friendly", "Rice Field View", "Outdoor"],
+    hours: "08:00 - 22:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Garden cafe dengan pemandangan sawah yang memukau. Ramah keluarga dan cocok untuk foto-foto bersama.",
+  },
+  {
+    id: 17, name: "Kafe Kotabaru", emoji: "🏛️",
+    location: "Jl. Suroto No.8, Kotabaru, Kec. Gondokusuman, Kota Yogyakarta",
+    district: "Kotabaru", wilayah: "Kota Yogyakarta",
+    lat: -7.7830, lng: 110.3763,
+    rating: 5.0, reviews: 107,
+    categories: ["Heritage Building", "Classic Coffee", "Chill Dining", "Aesthetic"],
+    hours: "08:30 - 23:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe di bangunan heritage bersejarah Kotabaru. Rating sempurna 5.0 dengan suasana klasik yang tak tertandingi.",
+  },
+  {
+    id: 18, name: "OMORE Coffee - Palagan", emoji: "✨",
+    location: "Jl. Palagan Tentara Pelajar No.38A, Sariharjo, Kec. Ngaglik, Sleman",
+    district: "Ngaglik", wilayah: "Sleman",
+    lat: -7.7280, lng: 110.3700,
+    rating: 4.6, reviews: 403,
+    categories: ["Minimalist", "Aesthetic", "Work-Friendly"],
+    hours: "08:00 - 23:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe minimalis estetik di kawasan Palagan. Sangat work-friendly dengan desain interior yang bersih dan modern.",
+  },
+  {
+    id: 19, name: "Koat Coffee Palagan", emoji: "☕",
+    location: "Jl. Palagan Tentara Pelajar, Sariharjo, Kec. Ngaglik, Sleman",
+    district: "Ngaglik", wilayah: "Sleman",
+    lat: -7.7295, lng: 110.3710,
+    rating: 4.5, reviews: 972,
+    categories: ["Open 24 Hours", "Spacious Outdoor", "Pocket Friendly", "Outdoor"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe outdoor spacious buka 24 jam dengan harga ramah di kantong. Salah satu pilihan terbaik di area Palagan.",
+  },
+  {
+    id: 20, name: "Toko Kopi Rukun", emoji: "🏠",
+    location: "Jl. Sajiono No.11, Kotabaru, Kec. Gondokusuman, Kota Yogyakarta",
+    district: "Kotabaru", wilayah: "Kota Yogyakarta",
+    lat: -7.7820, lng: 110.3758,
+    rating: 4.5, reviews: 51,
+    categories: ["Vintage Heritage", "Authentic Indonesian Coffee", "Cozy"],
+    hours: "09:00 - 22:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Toko kopi dengan nuansa vintage heritage. Sajikan kopi otentik Indonesia dengan cita rasa yang khas dan suasana cozy.",
+  },
+  {
+    id: 21, name: "Our Daily Coffee", emoji: "🥐",
+    location: "Jl. Kaliurang No.52, Kocoran, Condongcatur, Kec. Mlati, Sleman",
+    district: "Mlati", wilayah: "Sleman",
+    lat: -7.7560, lng: 110.3860,
+    rating: 4.8, reviews: 338,
+    categories: ["Morning Coffee", "Pastry & Brunch", "Cozy Space", "Cozy"],
+    hours: "07:00 - 00:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe pagi favorit dengan pastry dan brunch segar. Suasana cozy dengan kopi berkualitas untuk memulai hari.",
+  },
+  {
+    id: 22, name: "Backwards", emoji: "🏭",
+    location: "Jl. Kaliurang No.Km5, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7648, lng: 110.3902,
+    rating: 4.9, reviews: 148,
+    categories: ["Specialty Roastery", "Slow Bar", "Industrial", "Specialty Coffee"],
+    hours: "08:00 - 21:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Specialty roastery dengan konsep industrial. Slow bar yang mengutamakan kualitas brew — surga bagi pecinta kopi serius.",
+  },
+  {
+    id: 23, name: "Ultra Coffee and Space", emoji: "🚀",
+    location: "Jl. Kaliurang Km 12, Sardonoharjo, Kec. Ngaglik, Sleman",
+    district: "Ngaglik", wilayah: "Sleman",
+    lat: -7.7155, lng: 110.3920,
+    rating: 4.8, reviews: 189,
+    categories: ["Open Late", "Spacious Coworking", "Student Space", "Work-Friendly"],
+    hours: "09:00 - 00:00 / 02:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Co-working space spacious buka hingga larut. Populer di kalangan mahasiswa Kaliurang yang butuh ruang belajar luas.",
+  },
+  {
+    id: 24, name: "SENJA Coffee Kaliurang", emoji: "🌅",
+    location: "Jl. Kaliurang No.36 Km 4, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7690, lng: 110.3888,
+    rating: 4.6, reviews: 1300,
+    categories: ["Rooftop View", "Hangout Spot", "Signature Coffee", "Aesthetic"],
+    hours: "08:00 - 23:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe rooftop dengan signature coffee dan pemandangan indah. Salah satu spot sunset terbaik di Sleman.",
+  },
+  {
+    id: 25, name: "NOTED - Demangan", emoji: "📝",
+    location: "Jl. Wulung, Papringan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7800, lng: 110.3960,
+    rating: 5.0, reviews: 243,
+    categories: ["Open 24 Hours", "Nugas Friendly", "Minimalist Clean", "Work-Friendly"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Kafe minimalis buka 24 jam, rating sempurna 5.0. Favorit absolut mahasiswa yang nugas, dengan suasana bersih dan nyaman.",
+  },
+  {
+    id: 26, name: "NOTED - Gejayan", emoji: "📝",
+    location: "Jl. Affandi No.14, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7790, lng: 110.3975,
+    rating: 4.8, reviews: 878,
+    categories: ["Open 24 Hours", "Coworking Space", "Fast Internet", "Work-Friendly"],
+    hours: "Buka 24 Jam",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Cabang NOTED di Gejayan, buka 24 jam. Internet cepat dan suasana kondusif untuk kerja dan belajar sepanjang waktu.",
+  },
+  {
+    id: 27, name: "Svarga Flora Coffee & Plants", emoji: "🌸",
+    location: "Jl. Affandi No.26A, Condongcatur, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7785, lng: 110.3980,
+    rating: 4.4, reviews: 1500,
+    categories: ["Biophilic Greenery", "Plant Shop Cafe", "Open Late", "Outdoor"],
+    hours: "08:00 - 01:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Plant shop sekaligus kafe dengan konsep biophilic. Dikelilingi tanaman hijau, cocok untuk relaksasi sambil menikmati kopi.",
+  },
+  {
+    id: 28, name: "99 Coffee Roaster - Gejayan", emoji: "🫘",
+    location: "Jl. Affandi No.26, Condongcatur, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7783, lng: 110.3978,
+    rating: 4.6, reviews: 498,
+    categories: ["Coffee Roaster", "Specialty Beans", "Work-Friendly", "Specialty Coffee"],
+    hours: "07:00 - 00:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Coffee roaster dengan specialty beans pilihan. Tersedia berbagai metode brewing untuk pengalaman kopi yang otentik.",
+  },
+  {
+    id: 29, name: "Mangku Coffee and Culture", emoji: "🎨",
+    location: "Jl. Affandi, Gejayan, Caturtunggal, Kec. Depok, Sleman",
+    district: "Depok", wilayah: "Sleman",
+    lat: -7.7780, lng: 110.3972,
+    rating: 5.0, reviews: 185,
+    categories: ["Culture Space", "Open Late", "Artisan Coffee", "Specialty Coffee"],
+    hours: "07:00 - 04:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "Culture space dan artisan coffee yang buka hingga subuh. Menyatukan seni, budaya, dan kopi berkualitas di satu tempat.",
+  },
+  {
+    id: 30, name: "SÉNA - kopi & pâtisserie", emoji: "🥐",
+    location: "Jl. Mrisi No.10, Tirtonirmolo, Kec. Kasihan, Bantul",
+    district: "Kasihan", wilayah: "Bantul",
+    lat: -7.8380, lng: 110.3510,
+    rating: 4.8, reviews: 1100,
+    categories: ["French Patisserie", "Aesthetic Brunch", "Specialty Coffee", "Aesthetic"],
+    hours: "10:00 - 20:00",
+    get isOpen() { return calcIsOpen(this.hours); },
+    desc: "French patisserie dan specialty coffee di Bantul. Brunch estetik dengan pastry ala Prancis yang memanjakan lidah.",
+  },
+];
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let userLat = null, userLng = null;
+let currentSearch = "", currentSort = "default", currentCategory = "all", currentStatus = "all", currentWilayah = "all";
+
+// ─── Haversine distance ─────────────────────────
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ─── Stars ─────────────────────────────────────
+function stars(rating) {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5 ? 1 : 0;
+  return "★".repeat(full) + (half ? "½" : "") + "☆".repeat(5 - full - half);
+}
+
+// ─── Distance label ────────────────────────────
+function distLabel(cafe) {
+  if (userLat === null) return "—";
+  const d = haversine(userLat, userLng, cafe.lat, cafe.lng);
+  return d < 1 ? `${Math.round(d*1000)} m` : `${d.toFixed(1)} km`;
+}
+
+// ═══════════════════════════════════════════════
+//  FILTER & SORT
+// ═══════════════════════════════════════════════
+function filteredCafes() {
+  let list = [...cafes];
+
+  // search
+  if (currentSearch) {
+    const q = currentSearch.toLowerCase();
+    list = list.filter(c =>
+      c.name.toLowerCase().includes(q) ||
+      c.location.toLowerCase().includes(q) ||
+      c.categories.some(cat => cat.toLowerCase().includes(q)) ||
+      c.district.toLowerCase().includes(q)
+    );
+  }
+
+  // category
+  if (currentCategory !== "all") {
+    list = list.filter(c => c.categories.includes(currentCategory));
+  }
+
+  // wilayah
+  if (currentWilayah !== "all") {
+    list = list.filter(c => c.wilayah === currentWilayah);
+  }
+
+  // status
+  if (currentStatus === "open")   list = list.filter(c => c.isOpen);
+  if (currentStatus === "closed") list = list.filter(c => !c.isOpen);
+
+  // sort
+  if (currentSort === "rating-desc") list.sort((a,b) => b.rating - a.rating);
+  else if (currentSort === "rating-asc") list.sort((a,b) => a.rating - b.rating);
+  else if (currentSort === "distance-asc" && userLat !== null)
+    list.sort((a,b) => haversine(userLat,userLng,a.lat,a.lng) - haversine(userLat,userLng,b.lat,b.lng));
+  else if (currentSort === "name-asc") list.sort((a,b) => a.name.localeCompare(b.name));
+  else if (currentSort === "name-desc") list.sort((a,b) => b.name.localeCompare(a.name));
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER CARDS
+// ═══════════════════════════════════════════════
+function renderCards() {
+  const list = filteredCafes();
+  const grid = document.getElementById("cafeGrid");
+  const badge = document.getElementById("countBadge");
+  const title = document.getElementById("gridTitle");
+
+  badge.textContent = `${list.length} cafe`;
+
+  if (currentSearch) title.textContent = `Hasil Pencarian: "${currentSearch}"`;
+  else if (currentSort === "rating-desc") title.textContent = "⭐ Rating Tertinggi";
+  else if (currentSort === "distance-asc" && userLat !== null) title.textContent = "📍 Terdekat dari Kamu";
+  else title.textContent = "Semua Cafe";
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><p>Tidak ada cafe yang ditemukan.<br>Coba kata kunci lain.</p></div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(c => {
+    const dist = distLabel(c);
+    const distBadge = dist !== "—" ? `<span class="badge-distance">📍 ${dist}</span>` : "";
+    return `
+    <div class="card" onclick="openModal(${c.id})">
+      <div class="card-img-placeholder" style="position:relative;">
+        ${c.emoji}
+        ${distBadge}
+      </div>
+      <div class="card-body">
+        <div class="card-header-row">
+          <div class="card-name">${c.name}</div>
+          <div class="rating">★ ${c.rating.toFixed(1)} <span>(${c.reviews.toLocaleString()})</span></div>
+        </div>
+        <div class="card-location">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${c.district}
+        </div>
+        <div class="tags">${c.categories.map(t => `<span class="tag">${t}</span>`).join("")}</div>
+        <div class="card-footer">
+          <span class="open-status ${c.isOpen ? 'open' : 'closed'}">${c.isOpen ? "🟢 Buka" : "🔴 Tutup"}</span>
+          <span class="price-range">${c.price}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER RECOMMENDATIONS
+// ═══════════════════════════════════════════════
+function renderRecommendations() {
+  if (userLat === null) return;
+  const recSection = document.getElementById("recSection");
+  const recGrid = document.getElementById("recGrid");
+  recSection.style.display = "block";
+
+  // top 5 by composite score: high rating + low distance
+  const scored = cafes.map(c => {
+    const d = haversine(userLat, userLng, c.lat, c.lng);
+    const score = c.rating * 20 - d; // weight rating more
+    return { ...c, dist: d, score };
+  });
+  scored.sort((a,b) => b.score - a.score);
+  const top5 = scored.slice(0, 5);
+
+  recGrid.innerHTML = top5.map(c => `
+    <div class="rec-card" onclick="openModal(${c.id})" style="cursor:pointer;">
+      <div class="cafe-emoji">${c.emoji}</div>
+      <div class="rec-name">${c.name}</div>
+      <div class="rec-dist">📍 ${c.dist < 1 ? Math.round(c.dist*1000)+' m' : c.dist.toFixed(1)+' km'} &nbsp;·&nbsp; ${c.district}</div>
+      <div class="rec-rating">★ ${c.rating.toFixed(1)} · ${c.isOpen ? '<span style="color:#2d7a50">Buka</span>' : '<span style="color:#c0392b">Tutup</span>'}</div>
+    </div>
+  `).join("");
+}
+
+// ═══════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════
+function openModal(id) {
+  const c = cafes.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById("modalEmoji").textContent = c.emoji;
+  document.getElementById("modalName").textContent = c.name;
+  document.getElementById("modalSub").textContent = c.categories.join(" · ");
+  document.getElementById("modalRating").innerHTML = `★ ${c.rating.toFixed(1)} &nbsp; <span style="color:#57606a;font-weight:400;font-size:.88rem">(${c.reviews.toLocaleString()} ulasan)</span>`;
+  document.getElementById("modalLocation").textContent = c.location;
+  document.getElementById("modalHours").textContent = c.hours;
+  document.getElementById("modalPrice").textContent = c.price || "—";
+  document.getElementById("modalContact").textContent = c.contact || "—";
+  const dist = distLabel(c);
+  document.getElementById("modalDistance").textContent = dist !== "—" ? dist : "Aktifkan lokasi untuk melihat jarak";
+  document.getElementById("modalDesc").textContent = c.desc;
+  document.getElementById("modalOverlay").classList.add("active");
+}
+
+document.getElementById("modalClose").addEventListener("click", () => {
+  document.getElementById("modalOverlay").classList.remove("active");
+});
+document.getElementById("modalOverlay").addEventListener("click", e => {
+  if (e.target === e.currentTarget) document.getElementById("modalOverlay").classList.remove("active");
+});
+
+// ═══════════════════════════════════════════════
+//  EVENTS
+// ═══════════════════════════════════════════════
+document.getElementById("searchInput").addEventListener("input", e => {
+  currentSearch = e.target.value.trim();
+  renderCards();
+});
+
+document.getElementById("sortSelect").addEventListener("change", e => {
+  currentSort = e.target.value;
+  renderCards();
+});
+
+document.getElementById("categorySelect").addEventListener("change", e => {
+  currentCategory = e.target.value;
+  renderCards();
+});
+
+document.getElementById("statusSelect").addEventListener("change", e => {
+  currentStatus = e.target.value;
+  renderCards();
+});
+
+document.getElementById("wilayahSelect").addEventListener("change", e => {
+  currentWilayah = e.target.value;
+  renderCards();
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  currentSearch = ""; currentSort = "default"; currentCategory = "all"; currentStatus = "all"; currentWilayah = "all";
+  document.getElementById("searchInput").value = "";
+  document.getElementById("sortSelect").value = "default";
+  document.getElementById("categorySelect").value = "all";
+  document.getElementById("statusSelect").value = "all";
+  document.getElementById("wilayahSelect").value = "all";
+  renderCards();
+});
+
+// ─── Geolocation ────────────────────────────────
+document.getElementById("btnLocation").addEventListener("click", () => {
+  if (!navigator.geolocation) {
+    alert("Browser kamu tidak mendukung geolocation.");
+    return;
+  }
+  const btn = document.getElementById("btnLocation");
+  btn.textContent = "Mendeteksi…";
+  btn.disabled = true;
+
+  navigator.geolocation.getCurrentPosition(pos => {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+
+    // show banner
+    const banner = document.getElementById("location-banner");
+    banner.style.display = "block";
+    document.getElementById("locationText").textContent =
+      `Lokasi terdeteksi: ${userLat.toFixed(4)}, ${userLng.toFixed(4)} — jarak cafe dihitung dari titik ini`;
+
+    btn.innerHTML = `✅ Lokasi Aktif`;
+    btn.style.background = "#2d7a50";
+    btn.style.borderColor = "#2d7a50";
+    btn.disabled = false;
+
+    // auto-sort by distance
+    currentSort = "distance-asc";
+    document.getElementById("sortSelect").value = "distance-asc";
+
+    renderRecommendations();
+    renderCards();
+  }, err => {
+    alert("Gagal mendapatkan lokasi: " + err.message);
+    btn.innerHTML = `📍 Lokasi Saya`;
+    btn.disabled = false;
+  });
+});
+
+// ─── Initial render ─────────────────────────────
+renderCards();
+
+// ═══════════════════════════════════════════════
+//  AI CHAT ENGINE — Jogja Cafe Recommender AI
+// ═══════════════════════════════════════════════
+
+// ─── Knowledge base (mirrors cafes array, structured for AI matching) ────
+const KB = cafes.map(c => ({
+  id: c.id,
+  name: c.name,
+  wilayah: c.wilayah,
+  district: c.district,
+  rating: c.rating,
+  reviews: c.reviews,
+  categories: c.categories,
+  hours: c.hours,
+  isOpen: c.isOpen,
+  desc: c.desc,
+  emoji: c.emoji,
+}));
+
+// ─── Intent / keyword maps ────────────────────
+const INTENT = {
+  nugas:    ["nugas", "kerja", "ngerjain", "tugas", "skripsi", "deadline", "coworking", "co-working", "work", "belajar", "wifi", "internet", "laptop"],
+  latenight:["malam", "malem", "larut", "dini hari", "subuh", "24 jam", "24jam", "open late", "tengah malam"],
+  open24:   ["24 jam", "24jam", "semalam", "kapan aja", "24 hours", "tidak tutup", "ga tutup"],
+  outdoor:  ["outdoor", "terbuka", "alam", "garden", "kebun", "sawah", "alam terbuka", "luar"],
+  aesthetic:["estetik", "aesthetic", "foto", "fotografi", "instagram", "instagrammable", "cantik", "bagus"],
+  cozy:     ["cozy", "nyaman", "tenang", "kalem", "santai", "quiet", "sepi", "baca buku"],
+  eatery:   ["makan", "eatery", "makanan", "lapar", "food", "menu"],
+  livemusic:["live music", "musik", "band", "konser", "hiburan"],
+  specialty:["specialty", "single origin", "roastery", "brew", "pour over", "kopi serius", "kopi bagus", "kopi enak"],
+  affordable:["murah", "terjangkau", "hemat", "ekonomis", "budget", "kantong", "mahasiswa"],
+  rooftop:  ["rooftop", "atap", "atas", "pemandangan", "view"],
+  family:   ["keluarga", "family", "anak", "bareng keluarga"],
+};
+
+const AREA = {
+  "Kota Yogyakarta": ["kota jogja","kota yogya","kota yogyakarta","jogja kota","pusat kota","kota"],
+  "Sleman":          ["sleman","seturan","gejayan","jakal","kaliurang","palagan","condongcatur","mlati","ngaglik","depok"],
+  "Bantul":          ["bantul","kasihan","tirtonirmolo"],
+  // sub-areas
+  "Seturan":         ["seturan"],
+  "Gejayan":         ["gejayan","affandi"],
+  "Kaliurang":       ["kaliurang","jakal"],
+  "Palagan":         ["palagan"],
+  "Tirtodipuran":    ["tirtodipuran"],
+  "Prawirotaman":    ["prawirotaman"],
+  "Kotabaru":        ["kotabaru"],
+  "Gondokusuman":    ["gondokusuman","demangan"],
+  "Mantrijeron":     ["mantrijeron"],
+};
+
+// ─── Category label → categories array matching ────────────────────────
+const CAT_MAP = {
+  nugas:    ["Work-Friendly","Co-working Space","Coworking Space","Nugas Friendly","Fast Internet","High Speed WiFi","Coffee & Work Space","Spacious Coworking","Student Space","Student Hub","Book Cafe","Quiet Vibes"],
+  latenight:["Open Late","Open 24 Hours"],
+  open24:   ["Open 24 Hours"],
+  outdoor:  ["Outdoor","Outdoor Garden","Garden Cafe","Rice Field View","Spacious Outdoor","Biophilic Greenery","Plant Shop Cafe"],
+  aesthetic:["Aesthetic","Aesthetic Architecture","Aesthetic Brunch","Modern Minimalist","Minimalist","Rooftop View","Heritage Building"],
+  cozy:     ["Cozy","Cozy Coffee","Cozy Space","Calm Vibe","Quiet Vibes","Book Cafe"],
+  eatery:   ["Eatery","Casual Dining","Lounge & Eatery","Large Capacity"],
+  livemusic:["Live Music"],
+  specialty:["Specialty Coffee","Specialty Roastery","Coffee Roastery","Coffee Roaster","Specialty Beans","Artisan Coffee","Slow Bar"],
+  affordable:["Affordable Coffee","Pocket Friendly","Student Hub"],
+  rooftop:  ["Rooftop View"],
+  family:   ["Family Friendly"],
+};
+
+// ─── Detect intents from user message ──────────
+function detectIntents(msg) {
+  const m = msg.toLowerCase();
+  const found = [];
+  for (const [intent, words] of Object.entries(INTENT)) {
+    if (words.some(w => m.includes(w))) found.push(intent);
+  }
+  return found;
+}
+
+// ─── Detect area from user message ──────────────
+function detectArea(msg) {
+  const m = msg.toLowerCase();
+  for (const [area, words] of Object.entries(AREA)) {
+    if (words.some(w => m.includes(w))) return area;
+  }
+  return null;
+}
+
+// ─── Score a cafe against intents ───────────────
+function scoreCafe(cafe, intents, area) {
+  let score = cafe.rating * 10; // base
+
+  // area match
+  if (area) {
+    const areaLower = area.toLowerCase();
+    const inWilayah = cafe.wilayah.toLowerCase().includes(areaLower);
+    const inDistrict = cafe.district.toLowerCase().includes(areaLower);
+    const inLocation = cafe.location.toLowerCase().includes(areaLower);
+    // check sub-area keywords directly
+    const subWords = AREA[area] || [];
+    const inSub = subWords.some(w => cafe.location.toLowerCase().includes(w) || cafe.district.toLowerCase().includes(w));
+
+    if (inWilayah || inDistrict || inLocation || inSub) score += 50;
+    else return -1; // disqualify if area filter active but no match
+  }
+
+  // intent match
+  for (const intent of intents) {
+    const cats = CAT_MAP[intent] || [];
+    const matches = cats.filter(cat => cafe.categories.includes(cat)).length;
+    score += matches * 15;
+  }
+
+  // bonus for open now
+  if (cafe.isOpen) score += 5;
+
+  return score;
+}
+
+// ─── Build recommendation card HTML ─────────────
+function buildRecoCard(cafe, rank) {
+  return `<strong>${rank}. ${cafe.emoji} ${cafe.name}</strong> (⭐ ${cafe.rating.toFixed(1)}/5.0)\n` +
+    `📍 <strong>Wilayah:</strong> ${cafe.wilayah} (${cafe.district})\n` +
+    `🕒 <strong>Jam Buka:</strong> ${cafe.hours}\n` +
+    `🏷️ <strong>Vibe:</strong> ${cafe.categories.slice(0,3).join(", ")}\n` +
+    `💡 ${cafe.desc}`;
+}
+
+// ─── Main AI response logic ──────────────────────
+function aiRespond(userMsg) {
+  const msg = userMsg.trim();
+  if (!msg) return null;
+
+  const lower = msg.toLowerCase();
+
+  // Out-of-domain check
+  const jogjaKeywords = ["kafe","cafe","kopi","coffee","nugas","makan","nongkrong","rekomendasi","tempat","jogja","yogya","sleman","bantul","minum","ngopi","coworking","buka","tutup","murah","mahal","wifi","rating","outdoor","aesthetic","cozy","enak","beli","dekat","area","lokasi"];
+  const isOnDomain = jogjaKeywords.some(k => lower.includes(k));
+  if (!isOnDomain) {
+    return `Hehe, aku cuma bisa bantu soal rekomendasi kafe di Jogja nih! 😄\n\nCoba tanya sesuatu seperti:\n• "Kafe nugas 24 jam di Seturan"\n• "Tempat nongkrong malam di Kota Jogja"\n• "Kafe outdoor di Sleman yang aesthetic"\n\nAda yang mau dicari di Jogja? ☕`;
+  }
+
+  const intents = detectIntents(msg);
+  const area = detectArea(msg);
+
+  // Score all cafes
+  let candidates = KB
+    .map(c => ({ ...c, score: scoreCafe(c, intents, area) }))
+    .filter(c => c.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  // If no good match, fallback to top-rated
+  if (candidates.length === 0) {
+    candidates = [...KB].sort((a,b) => b.rating - a.rating);
+  }
+
+  // Pick top 2-3
+  const top = candidates.slice(0, 3);
+
+  // Compose intro
+  let intro = "Halo! Ini beberapa rekomendasi kafe di Jogja yang paling cocok buat kebutuhanmu:\n\n";
+
+  if (area && intents.length) {
+    const intentLabels = { nugas:"nugas/kerja", latenight:"buka malam/dini hari", open24:"buka 24 jam", outdoor:"outdoor", aesthetic:"aesthetic", cozy:"cozy & tenang", eatery:"makan", livemusic:"live music", specialty:"specialty coffee", affordable:"harga terjangkau", rooftop:"rooftop view", family:"keluarga" };
+    const labelArr = intents.map(i => intentLabels[i]).filter(Boolean);
+    intro = `Oke, aku cariin kafe ${labelArr.length ? labelArr.join(" & ") + " " : ""}di area <strong>${area}</strong> ya! Ini pilihannya:\n\n`;
+  } else if (area) {
+    intro = `Ini rekomendasi kafe terbaik di area <strong>${area}</strong>:\n\n`;
+  } else if (intents.length) {
+    const intentLabels = { nugas:"nugas/kerja", latenight:"buka malam", open24:"buka 24 jam", outdoor:"outdoor", aesthetic:"aesthetic", cozy:"cozy", eatery:"makan-makan", livemusic:"live music", specialty:"specialty coffee", affordable:"budget-friendly", rooftop:"rooftop", family:"bareng keluarga" };
+    const labelArr = intents.map(i => intentLabels[i]).filter(Boolean);
+    intro = `Dicari kafe buat <strong>${labelArr.join(" & ")}</strong>? Ini yang paling cucok:\n\n`;
+  }
+
+  const cards = top.map((c, i) => buildRecoCard(c, i + 1)).join("\n\n");
+
+  const closings = [
+    "Mau cari di area lain atau butuh yang suasananya lebih tenang? Kasih tahu aja ya! 🙌",
+    "Ada preferensi lain, kayak yang lebih murah atau ada parkir motor? Tinggal bilang! 😄",
+    "Mau yang buka lebih lama atau yang punya indoor nyaman? Aku siap bantuin! ☕",
+    "Kalau mau yang lebih spesifik — misal rating 5.0 doang atau yang 24 jam — tanya aja ya!",
+  ];
+  const closing = "\n\n" + closings[Math.floor(Math.random() * closings.length)];
+
+  return intro + cards + closing;
+}
+
+// ─── Chat UI helpers ──────────────────────────────
+const chatMessages = document.getElementById("chatMessages");
+
+function appendMsg(text, type) {
+  const div = document.createElement("div");
+  div.className = `msg ${type}`;
+  // allow minimal bold formatting for bot messages
+  if (type === "bot") {
+    div.innerHTML = text
+      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+      .replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>")
+      .replace(/<strong>/g,"<strong>").replace(/<\/strong>/g,"</strong>")
+      // restore HTML strong we built ourselves
+      .replace(/&lt;strong&gt;/g,"<strong>").replace(/&lt;\/strong&gt;/g,"</strong>")
+      .replace(/\n/g,"<br>");
+  } else {
+    div.textContent = text;
+  }
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return div;
+}
+
+function sendMessage(text) {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+
+  // hide chips after first message
+  document.getElementById("chatChips").style.display = "none";
+
+  appendMsg(trimmed, "user");
+  document.getElementById("chatInput").value = "";
+
+  // typing indicator
+  const typing = appendMsg("Lagi mikir… ✍️", "typing");
+
+  setTimeout(() => {
+    typing.remove();
+    const reply = aiRespond(trimmed);
+    if (reply) appendMsg(reply, "bot");
+  }, 600 + Math.random() * 400);
+}
+
+// ─── Chat UI events ──────────────────────────────
+const chatFab   = document.getElementById("chatFab");
+const chatPanel = document.getElementById("chatPanel");
+const chatClose = document.getElementById("chatClose");
+const chatInput = document.getElementById("chatInput");
+const chatSend  = document.getElementById("chatSend");
+
+chatFab.addEventListener("click", () => {
+  chatPanel.classList.add("open");
+  chatFab.style.display = "none";
+  // greet on first open
+  if (chatMessages.children.length === 0) {
+    setTimeout(() => {
+      appendMsg("Halo! 👋 Aku <strong>Jogja Cafe Recommender AI</strong>.\n\nMau cari kafe buat nugas, nongkrong, atau ngopi di Jogja? Tinggal tanya aja, aku siap bantu! ☕\n\nContoh: <em>\"Kafe nugas 24 jam di Seturan\"</em> atau <em>\"Cafe outdoor aesthetic di Sleman\"</em>", "bot");
+    }, 200);
+  }
+});
+
+chatClose.addEventListener("click", () => {
+  chatPanel.classList.remove("open");
+  chatFab.style.display = "flex";
+});
+
+chatSend.addEventListener("click", () => sendMessage(chatInput.value));
+chatInput.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(chatInput.value); });
+
+// quick chips
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => sendMessage(chip.textContent.replace(/^[^\w]+/,"").trim()));
+});
+</script>
+</body>
+</html>
